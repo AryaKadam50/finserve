@@ -1,0 +1,393 @@
+{
+	"info": {
+		"_postman_id": "finserve-collection-001",
+		"name": "FinServe — Loan Origination API",
+		"description": "Complete API collection for the FinServe loan origination system.\\n\\nBase URL: http://localhost:8080/api\\n\\nEndpoints cover user registration/login, loan CRUD, status management, and eligibility checks.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080/api",
+			"type": "string"
+		},
+		{
+			"key": "userId",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "loanId",
+			"value": "1",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Users",
+			"description": "User registration and authentication endpoints",
+			"item": [
+				{
+					"name": "Register User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Arya Kadam\",\n  \"email\": \"arya@example.com\",\n  \"password\": \"password123\",\n  \"phone\": \"9876543210\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/register",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", "register"]
+						},
+						"description": "Register a new user. Returns user info (without password) on success. Returns 400 if email already exists."
+					},
+					"response": [
+						{
+							"name": "201 — User registered",
+							"status": "Created",
+							"code": 201,
+							"body": "{\n  \"success\": true,\n  \"message\": \"User registered successfully\",\n  \"data\": {\n    \"id\": 2,\n    \"name\": \"Arya Kadam\",\n    \"email\": \"arya@example.com\",\n    \"role\": \"USER\",\n    \"message\": \"Registration successful\"\n  }\n}"
+						}
+					]
+				},
+				{
+					"name": "Login User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"arya@example.com\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", "login"]
+						},
+						"description": "Authenticate a user. Returns user info on success. Returns 400 for invalid credentials."
+					},
+					"response": [
+						{
+							"name": "200 — Login successful",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"success\": true,\n  \"message\": \"Login successful\",\n  \"data\": {\n    \"id\": 2,\n    \"name\": \"Arya Kadam\",\n    \"email\": \"arya@example.com\",\n    \"role\": \"USER\",\n    \"message\": \"Login successful\"\n  }\n}"
+						}
+					]
+				},
+				{
+					"name": "Login Admin",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"admin@finserve.com\",\n  \"password\": \"admin123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", "login"]
+						},
+						"description": "Login with the seeded admin account."
+					},
+					"response": [
+						{
+							"name": "200 — Admin login",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"success\": true,\n  \"message\": \"Login successful\",\n  \"data\": {\n    \"id\": 1,\n    \"name\": \"Admin\",\n    \"email\": \"admin@finserve.com\",\n    \"role\": \"ADMIN\",\n    \"message\": \"Login successful\"\n  }\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Loans",
+			"description": "Loan application CRUD, status management, and eligibility endpoints",
+			"item": [
+				{
+					"name": "Apply for Loan",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"userId\": {{userId}},\n  \"amount\": 500000,\n  \"tenure\": 60,\n  \"monthlyIncome\": 80000,\n  \"employmentType\": \"Salaried\",\n  \"purpose\": \"Home renovation\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/loans",
+							"host": ["{{baseUrl}}"],
+							"path": ["loans"]
+						},
+						"description": "Submit a new loan application. Auto-runs eligibility check: income ≥ ₹50,000 → PENDING, else → UNDER_REVIEW."
+					},
+					"response": [
+						{
+							"name": "201 — Loan application created",
+							"status": "Created",
+							"code": 201,
+							"body": "{\n  \"success\": true,\n  \"message\": \"Loan application submitted successfully\",\n  \"data\": {\n    \"id\": 1,\n    \"amount\": 500000,\n    \"tenure\": 60,\n    \"monthlyIncome\": 80000,\n    \"employmentType\": \"Salaried\",\n    \"purpose\": \"Home renovation\",\n    \"status\": \"PENDING\",\n    \"createdAt\": \"2026-07-25T22:00:00\"\n  }\n}"
+						}
+					]
+				},
+				{
+					"name": "Apply for Loan (Low Income)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"userId\": {{userId}},\n  \"amount\": 300000,\n  \"tenure\": 36,\n  \"monthlyIncome\": 30000,\n  \"employmentType\": \"Freelancer\",\n  \"purpose\": \"Education\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/loans",
+							"host": ["{{baseUrl}}"],
+							"path": ["loans"]
+						},
+						"description": "Loan application with income below ₹50,000. Should auto-set status to UNDER_REVIEW."
+					},
+					"response": [
+						{
+							"name": "201 — Under review (low income)",
+							"status": "Created",
+							"code": 201,
+							"body": "{\n  \"success\": true,\n  \"message\": \"Loan application submitted successfully. Your application is under review due to income criteria.\",\n  \"data\": {\n    \"id\": 2,\n    \"status\": \"UNDER_REVIEW\"\n  }\n}"
+						}
+					]
+				},
+				{
+					"name": "Get All Loans (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/loans",
+							"host": ["{{baseUrl}}"],
+							"path": ["loans"]
+						},
+						"description": "Retrieve all loan applications. Intended for admin use."
+					},
+					"response": [
+						{
+							"name": "200 — All loans",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"success\": true,\n  \"message\": \"Loans retrieved successfully\",\n  \"data\": [\n    {\n      \"id\": 1,\n      \"amount\": 500000,\n      \"tenure\": 60,\n      \"status\": \"PENDING\",\n      \"user\": { \"id\": 2, \"name\": \"Arya Kadam\" }\n    }\n  ]\n}"
+						}
+					]
+				},
+				{
+					"name": "Get Loan by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/loans/{{loanId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["loans", "{{loanId}}"]
+						},
+						"description": "Retrieve a single loan application by its ID."
+					},
+					"response": [
+						{
+							"name": "200 — Loan details",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"success\": true,\n  \"message\": \"Loan retrieved successfully\",\n  \"data\": {\n    \"id\": 1,\n    \"amount\": 500000,\n    \"tenure\": 60,\n    \"monthlyIncome\": 80000,\n    \"employmentType\": \"Salaried\",\n    \"purpose\": \"Home renovation\",\n    \"status\": \"PENDING\",\n    \"createdAt\": \"2026-07-25T22:00:00\"\n  }\n}"
+						}
+					]
+				},
+				{
+					"name": "Get User's Loans",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{userId}}/loans",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", "{{userId}}", "loans"]
+						},
+						"description": "Retrieve all loan applications for a specific user."
+					},
+					"response": [
+						{
+							"name": "200 — User's loans",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"success\": true,\n  \"message\": \"Loans retrieved successfully\",\n  \"data\": []\n}"
+						}
+					]
+				},
+				{
+					"name": "Update Loan Status (Approve)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"APPROVED\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/loans/{{loanId}}/status",
+							"host": ["{{baseUrl}}"],
+							"path": ["loans", "{{loanId}}", "status"]
+						},
+						"description": "Update the status of a loan application. Admin action."
+					},
+					"response": [
+						{
+							"name": "200 — Status updated",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"success\": true,\n  \"message\": \"Loan status updated to APPROVED\",\n  \"data\": {\n    \"id\": 1,\n    \"status\": \"APPROVED\"\n  }\n}"
+						}
+					]
+				},
+				{
+					"name": "Update Loan Status (Reject)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"REJECTED\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/loans/{{loanId}}/status",
+							"host": ["{{baseUrl}}"],
+							"path": ["loans", "{{loanId}}", "status"]
+						},
+						"description": "Reject a loan application."
+					},
+					"response": [
+						{
+							"name": "200 — Rejected",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"success\": true,\n  \"message\": \"Loan status updated to REJECTED\",\n  \"data\": {\n    \"id\": 1,\n    \"status\": \"REJECTED\"\n  }\n}"
+						}
+					]
+				},
+				{
+					"name": "Delete Loan",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/loans/{{loanId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["loans", "{{loanId}}"]
+						},
+						"description": "Delete a loan application by ID."
+					},
+					"response": [
+						{
+							"name": "204 — Deleted",
+							"status": "No Content",
+							"code": 204,
+							"body": ""
+						}
+					]
+				},
+				{
+					"name": "Check Eligibility",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"monthlyIncome\": 75000,\n  \"requestedAmount\": 500000,\n  \"tenure\": 60\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/loans/check-eligibility",
+							"host": ["{{baseUrl}}"],
+							"path": ["loans", "check-eligibility"]
+						},
+						"description": "Rule-based eligibility check. Income ≥ ₹50,000 → eligible. Otherwise → needs review."
+					},
+					"response": [
+						{
+							"name": "200 — Eligible",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"eligible\": true,\n  \"message\": \"Congratulations! You are eligible for the loan.\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Check Eligibility (Not Eligible)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"monthlyIncome\": 25000,\n  \"requestedAmount\": 500000,\n  \"tenure\": 60\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/loans/check-eligibility",
+							"host": ["{{baseUrl}}"],
+							"path": ["loans", "check-eligibility"]
+						},
+						"description": "Eligibility check with income below threshold."
+					},
+					"response": [
+						{
+							"name": "200 — Needs review",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"eligible\": false,\n  \"message\": \"Your application needs further review based on income criteria.\"\n}"
+						}
+					]
+				}
+			]
+		}
+	]
+}

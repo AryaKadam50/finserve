@@ -1,0 +1,52 @@
+# ============================================================
+# FinServe — systemd Service File
+# ============================================================
+# Runs the Spring Boot application as a background service
+# with automatic restart on failure and on boot.
+#
+# Install to: /etc/systemd/system/finserve.service
+# Then run:
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable finserve
+#   sudo systemctl start finserve
+# ============================================================
+
+[Unit]
+Description=FinServe Loan Origination System (Spring Boot)
+After=network.target mariadb.service
+Wants=mariadb.service
+
+[Service]
+Type=simple
+User=ec2-user
+Group=ec2-user
+WorkingDirectory=/opt/finserve
+
+# Load environment variables from .env file
+EnvironmentFile=/opt/finserve/.env
+
+# Run the Spring Boot JAR
+ExecStart=/usr/bin/java \
+    -Xms256m -Xmx512m \
+    -Dspring.datasource.url=jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC \
+    -Dspring.datasource.username=${DB_USERNAME} \
+    -Dspring.datasource.password=${DB_PASSWORD} \
+    -Dfrontend.url=${FRONTEND_URL} \
+    -jar /opt/finserve/finserve-backend-0.0.1-SNAPSHOT.jar
+
+# Restart on failure
+Restart=on-failure
+RestartSec=10
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=finserve
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/opt/finserve /tmp
+
+[Install]
+WantedBy=multi-user.target
