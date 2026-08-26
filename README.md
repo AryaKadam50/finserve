@@ -1,268 +1,187 @@
-# FinServe — Mini Loan Origination System
+# FinServe — Digital Loan Origination & AI-Assisted Underwriting Platform
 
-🔗 **Live Demo:** http://13.127.86.18
+FinServe is a comprehensive, production-ready loan origination system featuring an **Agentic AI Underwriting Assistant**. Built with a robust Spring Boot backend and a dynamic React frontend, FinServe handles the entire loan lifecycle—from customer application and automated document verification to Retrieval-Augmented Generation (RAG) policy analysis and strict human-in-the-loop admin review.
 
-A full-stack loan origination and management system built for interview demonstrations. Features customer loan applications, admin management, and rule-based eligibility checking.
-
-## Tech Stack
-
+### Tech Stack
 | Layer | Technology |
-|-------|-----------|
-| Frontend | React.js (Vite) |
-| Backend | Java 17 + Spring Boot 3.2 |
-| API | REST |
+|---|---|
+| Frontend | React 19, Vite, React Router v7, Axios |
+| Backend | Java 17, Spring Boot 3.2.x, Spring Data JPA, Hibernate, BCrypt |
 | Database | MySQL 8 |
-| ORM | Spring Data JPA / Hibernate |
-| Auth | BCrypt password hashing |
-| Cloud | AWS EC2 + Nginx |
-
-## Architecture
-
-```
-┌─────────────────┐     HTTP      ┌──────────────────────────────────────────┐     JDBC     ┌─────────┐
-│   React.js UI   │ ──────────→   │  Spring Boot                              │ ──────────→  │  MySQL  │
-│  (Vite + Axios) │   REST API    │  Controller → Service → Repository → JPA │              │   8.x   │
-└─────────────────┘               └──────────────────────────────────────────┘              └─────────┘
-```
-
-## Features
-
-### Customer Side
-- ✅ Register / Login (BCrypt password hashing)
-- ✅ Apply for a loan (amount, income, tenure, employment type, purpose)
-- ✅ Track application status (PENDING / APPROVED / REJECTED / UNDER_REVIEW)
-- ✅ View loan details
-
-### Admin Side
-- ✅ View all applications in a dashboard table
-- ✅ Approve or reject pending applications
-- ✅ Admin role check
-
-### Eligibility Engine
-- ✅ Rule-based check: monthly income ≥ ₹50,000 → eligible
-- ✅ Standalone `/check-eligibility` endpoint
-- ✅ Auto-runs on loan submission
+| AI | OpenAI `gpt-4o-mini` (completions), `text-embedding-3-small` (embeddings) |
+| Rate Limiting | Bucket4j |
+| Observability | Spring Boot Actuator, Micrometer Prometheus |
+| Infra | AWS EC2, Nginx, systemd, Docker |
+| CI/CD | GitHub Actions |
 
 ---
 
-## Quick Start — Local Development
+## Quick Start (Docker)
 
-### Prerequisites
-- **Java 17+** (Amazon Corretto or OpenJDK)
-- **Maven 3.8+** (or use the included Maven wrapper)
-- **MySQL 8.x** running locally
-- **Node.js 18+** and **npm 9+**
-
-### 1. Database Setup
+> **Prerequisites**: Docker Desktop, a `.env` file based on `.env.example`.
 
 ```bash
-# Option A: Run the schema file
-mysql -u root -p < schema.sql
+cp .env.example .env
+# Fill in your DB password and optionally your OPENAI_API_KEY
 
-# Option B: Let Hibernate auto-create (ddl-auto=update is set)
-# Just create the database:
-mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS finserve_db;"
+docker-compose up --build
+# Frontend: http://localhost:5173
+# Backend API: http://localhost:8080
+# Metrics: http://localhost:8080/actuator/health
 ```
 
-### 2. Backend
-
-```bash
-cd finserve-backend
-
-# Set DB credentials (or edit application.properties)
-export DB_USERNAME=root
-export DB_PASSWORD=your_password
-
-# Build and run
-./mvnw spring-boot:run
-```
-
-The API will be available at `http://localhost:8080/api`.
-
-**Seeded admin account:** `admin@finserve.com` / `admin123`
-
-### 3. Frontend
-
-```bash
-cd finserve-frontend
-
-# Install dependencies
-npm install
-
-# Start dev server
-npm run dev
-```
-
-The UI will be available at `http://localhost:5173`.
+Without an `OPENAI_API_KEY`, the AI runs in **mock mode** using deterministic hash-based embeddings — all flows work end-to-end for local development.
 
 ---
 
-## API Endpoints
+## 1. Overview
 
-| Method | Endpoint | Description | Status Code |
-|--------|----------|-------------|-------------|
-| `POST` | `/api/users/register` | Register a new user | 201 |
-| `POST` | `/api/users/login` | Authenticate user | 200 |
-| `POST` | `/api/loans` | Submit loan application | 201 |
-| `GET` | `/api/loans` | Get all loans (admin) | 200 |
-| `GET` | `/api/loans/{id}` | Get loan by ID | 200 |
-| `PUT` | `/api/loans/{id}/status` | Update loan status | 200 |
-| `DELETE` | `/api/loans/{id}` | Delete a loan | 204 |
-| `GET` | `/api/users/{userId}/loans` | Get user's loans | 200 |
-| `POST` | `/api/loans/check-eligibility` | Check eligibility | 200 |
+FinServe transforms traditional loan origination by introducing an AI underwriting agent. Unlike fully autonomous systems, the FinServe AI operates strictly as an *assistant*. It gathers financial context, verifies uploaded documents, queries a vector knowledge base of institutional policies, and presents a highly structured recommendation to a human underwriter. The final financial decision and state mutation are rigidly protected by backend Java business logic.
 
-### Example: Check Eligibility
+---
 
-```bash
-curl -X POST http://localhost:8080/api/loans/check-eligibility \
-  -H "Content-Type: application/json" \
-  -d '{
-    "monthlyIncome": 75000,
-    "requestedAmount": 500000,
-    "tenure": 60
-  }'
-```
+## 2. Architecture
 
-Response:
-```json
-{
-  "eligible": true,
-  "message": "Congratulations! You are eligible for the loan."
-}
+FinServe is built on a reliable, traditional stack, enhanced with standalone AI components. It intentionally avoids heavy frameworks like Spring AI or external vector databases like Pinecone to remain lightweight and fast.
+
+```mermaid
+graph TD
+    %% Frontend to Backend
+    Client[React Frontend] -->|HTTPS| Proxy[Nginx]
+    Proxy --> API[Spring Boot Backend]
+    
+    %% Core Backend
+    API -->|JPA / Hibernate| DB[(MySQL 8)]
+    
+    %% AI Pipeline
+    API -.->|1. Trigger Analysis| Orchestrator(UnderwritingAgentService)
+    Orchestrator -->|2. Fetch Data| Tools[Agent Tools]
+    Tools -->|Read-Only| DB
+    
+    %% RAG Pipeline
+    Orchestrator -->|3. Query Policies| VS[(SimpleVectorStore)]
+    VS -->|Top K Chunks| Orchestrator
+    
+    %% LLM Interaction
+    Orchestrator -->|4. Formulate Prompt| LLM[OpenAI API]
+    LLM -->|5. Structured JSON| Orchestrator
+    
+    %% Output
+    Orchestrator -->|6. Log & Flag| DB
+    Orchestrator -.->|Recommendation| Admin[Admin Dashboard]
 ```
 
 ---
 
-## Database Schema
+## 3. Loan Workflow
 
-### `users`
-| Column | Type | Constraints |
-|--------|------|-------------|
-| id | BIGINT | PK, auto-increment |
-| name | VARCHAR(100) | NOT NULL |
-| email | VARCHAR(150) | NOT NULL, UNIQUE |
-| password | VARCHAR(255) | NOT NULL (BCrypt) |
-| phone | VARCHAR(20) | |
-| role | ENUM('USER','ADMIN') | DEFAULT 'USER' |
+The lifecycle of an application ensures maximum compliance and auditability:
 
-### `loan_applications`
-| Column | Type | Constraints |
-|--------|------|-------------|
-| id | BIGINT | PK, auto-increment |
-| user_id | BIGINT | FK → users.id |
-| amount | DECIMAL(15,2) | NOT NULL |
-| tenure | INT | NOT NULL (months) |
-| monthly_income | DECIMAL(15,2) | NOT NULL |
-| employment_type | VARCHAR(50) | NOT NULL |
-| purpose | VARCHAR(255) | |
-| status | ENUM | DEFAULT 'PENDING' |
-| created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP |
+1. **Application**: Customer submits loan request (Amount, Tenure, Income, Expenses, EMI).
+2. **Document Upload**: Customer uploads supporting files (e.g., Salary Slip).
+3. **Automated Verification**: System extracts data and runs deterministic mismatch checks against declared income.
+4. **AI Underwriting**: Admin triggers AI analysis. AI gathers data, fetches policy, and formulates a recommendation.
+5. **Human Review**: Admin reviews the application, documents, verification diffs, and AI policy evidence.
+6. **Final Decision**: Admin makes the final call. If contradicting the AI, a mandatory override reason is enforced.
 
 ---
 
-## Backend Package Structure
+## 4. Agent Tools
 
-```
-finserve-backend/
-├── src/main/java/com/finserve/
-│   ├── FinserveApplication.java
-│   ├── controller/
-│   │   ├── LoanController.java
-│   │   └── UserController.java
-│   ├── service/
-│   │   ├── LoanService.java
-│   │   └── UserService.java
-│   ├── repository/
-│   │   ├── LoanRepository.java
-│   │   └── UserRepository.java
-│   ├── model/
-│   │   ├── LoanApplication.java
-│   │   ├── LoanStatus.java
-│   │   ├── User.java
-│   │   └── UserRole.java
-│   ├── dto/
-│   │   ├── ApiResponse.java
-│   │   ├── EligibilityRequest.java
-│   │   ├── EligibilityResponse.java
-│   │   ├── LoanApplicationRequest.java
-│   │   ├── LoanStatusUpdateRequest.java
-│   │   ├── LoginRequest.java
-│   │   ├── LoginResponse.java
-│   │   └── RegisterRequest.java
-│   ├── exception/
-│   │   ├── BadRequestException.java
-│   │   ├── GlobalExceptionHandler.java
-│   │   └── ResourceNotFoundException.java
-│   └── config/
-│       ├── CorsConfig.java
-│       └── SecurityConfig.java
-├── src/main/resources/
-│   ├── application.properties
-│   └── data.sql
-└── pom.xml
-```
+The AI operates in a controlled environment. The `AgentToolsService` provides the LLM with read-only structured context. It has access to:
+
+- `getLoanApplication(applicationId)`: Fetches loan amount, tenure, and purpose.
+- `getApplicantFinancialProfile(applicationId)`: Fetches declared income, expenses, and credit score.
+- `getApplicantLoanHistory(applicationId)`: Retrieves past loan performance (e.g., existing loan counts, past defaults).
+- `calculateDebtToIncomeRatio(applicationId)`: Dynamically calculates the applicant's DTI ratio based on proposed EMI + existing EMI.
+- `getDocumentVerificationResults(applicationId)`: Retrieves flagged mismatches (e.g., Extracted Salary < Declared Salary).
+- `getEligibilityRules()`: Fetches hardcoded backend constraints.
 
 ---
 
-## Frontend Pages
+## 5. RAG & Policy Knowledge Base
 
-| Page | Route | Access |
-|------|-------|--------|
-| Home | `/` | Public |
-| Register | `/register` | Public |
-| Login | `/login` | Public |
-| Apply for Loan | `/apply` | User |
-| My Applications | `/my-applications` | User |
-| Loan Details | `/loans/:id` | User |
-| Admin Dashboard | `/admin` | Admin |
+FinServe includes a custom, standalone Retrieval-Augmented Generation (RAG) system:
 
----
-
-## Postman Collection
-
-Import `postman/FinServe.postman_collection.json` into Postman. The collection includes all endpoints with example request/response bodies and uses variables for `baseUrl`, `userId`, and `loanId`.
+- **Documents**: Fictional markdown policies (DTI limits, Income requirements, Credit score rules) live in `src/main/resources/policies/`.
+- **Chunking**: On startup, `PolicyIngestionService` parses and splits these files by markdown headers.
+- **Embeddings**: Fetches vectors using OpenAI's `text-embedding-3-small`. (Includes a deterministic hash-based mock fallback for offline local testing).
+- **Vector Store**: A pure Java `SimpleVectorStore` that calculates Cosine Similarity in-memory.
+- **Retrieval**: Before calling the LLM, the system generates a query from the applicant's profile, retrieves the Top 3 policy chunks, and injects them into the prompt.
+- **Grounded Evidence**: The LLM is forced to output `policyReferences` (Document, Section, Relevance) mapping its decision directly to the provided text.
 
 ---
 
-## Deployment
+## 6. Security
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for complete AWS deployment instructions.
-
-### Quick Deploy
-
-```bash
-# 1. Provision EC2
-./deploy/provision-ec2.sh
-
-# 2. Set up server (Java, MySQL)
-./deploy/setup-server.sh <EC2_IP>
-
-# 3. Deploy backend
-./deploy/deploy-backend.sh <EC2_IP>
-
-# 4. Deploy frontend
-./deploy/deploy-frontend.sh <EC2_IP>
-```
-
-### Tear Down (stop AWS charges)
-
-```bash
-./deploy/teardown.sh
-```
+- **Authentication**: Stateless endpoints. (JWT infrastructure ready).
+- **Authorization**: Strict separation. Customers can only view/upload documents for their own loans. Endpoints like `PUT /status` and `POST /analyze` enforce `X-User-Role: ADMIN`.
+- **AI Restrictions**: The AI **cannot** approve/reject loans or write to the database. It returns a `UnderwritingResult` which the orchestrator logs and uses to flag the application as `AI_RECOMMENDED` or `PENDING_HUMAN_REVIEW`.
+- **Secret Management**: Passwords, Database URIs, and OpenAI API Keys are strictly loaded via environment variables (`.env`). Admin users are seeded dynamically via `AdminSeeder.java`.
 
 ---
 
-## Assumptions & Notes
+## 7. Database Model
 
-1. **Tenure** is measured in **months** throughout the system
-2. **Currency** is **INR (₹)** as shown in the UI
-3. **No JWT/OAuth** — simple login with BCrypt; state managed in React Context + localStorage
-4. **Admin user** is seeded via `data.sql` on first run
-5. **Eligibility rule**: monthly income ≥ ₹50,000 → eligible (non-ML, rule-based)
-6. **Hibernate `ddl-auto=update`** generates tables automatically; `schema.sql` is provided for manual setup
+- **`User`**: Customers and Admins.
+- **`LoanApplication`**: Core transactional record (amount, status, income).
+- **`Document`**: File metadata and overall verification status.
+- **`VerificationResult`**: Granular field-level checks (e.g., `field="monthlyIncome"`, `matchStatus="MISMATCH"`).
+- **`UnderwritingResult`**: The immutable AI recommendation (Confidence, Risk Level, Verification Issues).
+- **`AuditEvent`**: An immutable ledger tracking the chronological lifecycle (Submission -> Upload -> AI Analysis -> Admin Override).
 
 ---
 
-## License
+## 8. Key API Endpoints
 
-This project is for interview demonstration purposes.
+- `POST /api/loans`: Submit an application.
+- `POST /api/documents/{loanId}/upload`: Multipart document upload and automated extraction trigger.
+- `GET /api/documents/{loanId}`: View verification status (Admins see detailed field diffs).
+- `POST /api/underwriting/{id}/analyze`: Trigger the Agentic AI (Rate-limited via Bucket4j).
+- `PUT /api/loans/{id}/status`: Admin decision. Accepts an `AdminDecisionRequest` (Status, OverrideReason).
+- `GET /api/loans/{id}/audit-events`: Fetches the immutable timeline.
+
+---
+
+## 9. Deployment
+
+FinServe is designed to run locally via Docker, or deployed to AWS EC2 using native Linux services:
+
+- **Docker**: Included `docker-compose.yml` spins up MySQL 8, the Spring Boot Backend (temurin-17), and the React Frontend (Nginx alpine).
+- **AWS EC2 (t3.micro)**:
+  - Backend runs as a `systemd` service (`finserve.service`).
+  - Frontend is built statically and served via Nginx.
+  - Nginx acts as a reverse proxy routing `/api` traffic to `localhost:8080`.
+  - Credentials supplied via `/etc/finserve/.env`.
+
+---
+
+## 10. Testing
+
+FinServe boasts a robust testing suite that covers the orchestrator, extraction pipelines, and RAG components.
+
+- **Unit Tests**: Over 30 backend tests (Mockito/JUnit 5). Mockito interfaces were specifically extracted (`AgentToolsService`, `SimpleVectorStoreService`) to bypass `inline-mock-maker` limitations on Java 26.
+- **Verification Tests**: Validates that mismatches between extracted document fields and declared fields properly flag the system.
+- **AI Failure Tests**: Tests the `UnderwritingAgentService` graceful degradation. If the LLM times out, it asserts that the application falls back to `PENDING_HUMAN_REVIEW` without dropping the request.
+
+---
+
+## 11. AI Limitations & Disclaimers
+
+> [!WARNING]
+> **Advisory Only**: The AI in FinServe provides *recommendations*. It is structurally prevented from making final financial decisions or executing status changes on behalf of an underwriter.
+> **Synthetic Data**: All policies, credit scores, and extraction logic inside this repository are purely synthetic/mocked for demonstration purposes.
+> **Production Readiness**: While the code is productionized, real-world deployment of automated underwriting requires intense regulatory compliance (e.g., Fair Lending laws, explainability audits) beyond the scope of this repository.
+
+---
+
+## 12. Demo Flow
+
+1. **Customer Applies**: A customer submits a loan for ₹500,000, claiming a monthly income of ₹100,000. Status -> `PENDING`.
+2. **Customer Uploads Doc**: Customer uploads a `SALARY_SLIP`.
+3. **Automated Verification**: The mock extraction service reads the document, finds `netIncome = ₹85,000`. The Verification Service flags a `MISMATCH`.
+4. **Admin Triggers AI**: Admin clicks "AI Analyze". 
+5. **AI Works**: The Orchestrator queries the vector store, retrieving the *Manual Review Policy* (which states document mismatches force a manual review). 
+6. **AI Recommends**: The AI generates a recommendation: `REVIEW`, Risk Level `HIGH`, and cites the exact policy section. Status -> `PENDING_HUMAN_REVIEW`.
+7. **Admin Decides**: The Admin reviews the AI's logic. If they decide to `APPROVE` the loan anyway (contradicting the AI), the frontend forces them to provide an Override Reason.
+8. **Audit Trail**: The system successfully approves the loan, logging an `ADMIN_OVERRIDE` event noting the exact reason provided by the human underwriter.

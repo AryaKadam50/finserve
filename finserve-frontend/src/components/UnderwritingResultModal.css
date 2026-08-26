@@ -1,0 +1,145 @@
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.ai-modal {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+  animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  background: linear-gradient(135deg, #a855f7, #6366f1);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.btn-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.btn-close:hover {
+  color: var(--text-primary);
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.ai-summary-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.ai-card {
+  background: var(--bg-secondary);
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  text-align: center;
+}
+
+.ai-label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.5rem;
+}
+
+.ai-card h3 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.ai-alert {
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.ai-alert.warning {
+  color: var(--warning);
+}
+
+.ai-alert p {
+  margin: 0.5rem 0 0 0;
+  font-size: 0.9rem;
+}
+
+.ai-section {
+  margin-bottom: 1.5rem;
+}
+
+.ai-section h4 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+.ai-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.ai-list li {
+  padding: 0.75rem;
+  background: var(--bg-secondary);
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  border-left: 3px solid var(--accent);
+}
+
+.ai-list.danger li {
+  border-left-color: var(--danger);
+  background: rgba(239, 68, 68, 0.05);
+}
+
+.ai-footer {
+  margin-top: 2rem;
+  text-align: right;
+  color: var(--text-secondary);
+}
+
+@keyframes slideIn {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}

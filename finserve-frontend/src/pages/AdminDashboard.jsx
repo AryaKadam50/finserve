@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { getAllLoans, updateLoanStatus } from '../services/api';
+import { getAllLoans } from '../services/api';
 import StatusBadge from '../components/StatusBadge';
+import { useNavigate } from 'react-router-dom';
 
 const AdminDashboard = () => {
   const [loans, setLoans] = useState([]);
   const [loading, setLoading] = useState(true);
-
+  const [filter, setFilter] = useState('ALL');
+  const navigate = useNavigate();
+  
   const fetchLoans = async () => {
     try {
       const res = await getAllLoans();
-      setLoans(res.data || []);
+      setLoans(res.data?.data || []);
     } catch (err) {
       console.error('Failed to fetch loans', err);
     } finally {
@@ -21,111 +24,89 @@ const AdminDashboard = () => {
     fetchLoans();
   }, []);
 
-  const handleStatusChange = async (id, status) => {
-    if (!window.confirm(`Are you sure you want to mark this loan as ${status}?`)) return;
-    try {
-      await updateLoanStatus(id, status);
-      fetchLoans();
-    } catch (err) {
-      alert('Failed to update status');
-    }
-  };
-
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
+    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount || 0);
   };
 
-  const stats = {
-    total: loans.length,
-    pending: loans.filter(l => l.status === 'PENDING' || l.status === 'UNDER_REVIEW').length,
-    approved: loans.filter(l => l.status === 'APPROVED').length,
-    rejected: loans.filter(l => l.status === 'REJECTED').length,
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-IN');
   };
+
+  const tabs = ['ALL', 'PENDING', 'PENDING_HUMAN_REVIEW', 'AI_RECOMMENDED', 'APPROVED', 'REJECTED'];
+
+  const filteredLoans = loans.filter(loan => {
+    if (filter === 'ALL') return true;
+    return loan.status === filter;
+  });
 
   return (
     <div className="page-container">
       <div className="flex justify-between items-center mb-6">
-        <h2>Admin Dashboard</h2>
-        <span style={{ color: 'var(--text-secondary)' }}>Total Applications: {stats.total}</span>
+        <h2>Underwriting Queue</h2>
+        <span style={{ color: 'var(--text-secondary)' }}>Total Applications: {loans.length}</span>
       </div>
 
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        <div className="glass-card text-center" style={{ padding: '1.5rem' }}>
-          <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>{stats.total}</div>
-          <div style={{ color: 'var(--text-secondary)' }}>Total</div>
-        </div>
-        <div className="glass-card text-center" style={{ padding: '1.5rem', borderBottom: '4px solid var(--warning)' }}>
-          <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--warning)' }}>{stats.pending}</div>
-          <div style={{ color: 'var(--text-secondary)' }}>Pending</div>
-        </div>
-        <div className="glass-card text-center" style={{ padding: '1.5rem', borderBottom: '4px solid var(--success)' }}>
-          <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--success)' }}>{stats.approved}</div>
-          <div style={{ color: 'var(--text-secondary)' }}>Approved</div>
-        </div>
-        <div className="glass-card text-center" style={{ padding: '1.5rem', borderBottom: '4px solid var(--danger)' }}>
-          <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--danger)' }}>{stats.rejected}</div>
-          <div style={{ color: 'var(--text-secondary)' }}>Rejected</div>
-        </div>
+      <div className="flex gap-2 mb-6" style={{ overflowX: 'auto', paddingBottom: '0.5rem' }}>
+        {tabs.map(tab => (
+          <button
+            key={tab}
+            onClick={() => setFilter(tab)}
+            className={`btn ${filter === tab ? 'btn-primary' : ''}`}
+            style={{ 
+              background: filter === tab ? 'var(--primary)' : 'var(--bg-secondary)',
+              color: filter === tab ? 'white' : 'var(--text-primary)',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            {tab.replace(/_/g, ' ')}
+          </button>
+        ))}
       </div>
 
       <div className="table-container table-desktop glass-card" style={{ padding: 0, overflow: 'hidden' }}>
         {loading ? (
           <div style={{ padding: '2rem', textAlign: 'center' }}>Loading...</div>
         ) : (
-          <table className="table">
+          <table className="table" style={{ width: '100%' }}>
             <thead>
               <tr>
                 <th>ID</th>
                 <th>Applicant</th>
                 <th>Amount</th>
-                <th>Tenure</th>
                 <th>Income</th>
+                <th>Risk Level</th>
                 <th>Status</th>
-                <th>Actions</th>
+                <th>Created Date</th>
               </tr>
             </thead>
             <tbody>
-              {loans.map(loan => (
-                <tr key={loan.id}>
+              {filteredLoans.map(loan => (
+                <tr 
+                  key={loan.id} 
+                  onClick={() => navigate(`/admin/loans/${loan.id}`)}
+                  style={{ cursor: 'pointer' }}
+                  className="hover:bg-gray-800 transition-colors"
+                >
                   <td>#{loan.id}</td>
                   <td>{loan.user?.name || 'Unknown'}</td>
                   <td>{formatCurrency(loan.amount)}</td>
-                  <td>{loan.tenure} mo</td>
                   <td>{formatCurrency(loan.monthlyIncome)}</td>
+                  <td>{loan.riskLevel || 'N/A'}</td>
                   <td><StatusBadge status={loan.status} /></td>
-                  <td>
-                    {(loan.status === 'PENDING' || loan.status === 'UNDER_REVIEW') && (
-                      <div className="flex gap-2">
-                        <button onClick={() => handleStatusChange(loan.id, 'APPROVED')} className="btn btn-success" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}>Approve</button>
-                        <button onClick={() => handleStatusChange(loan.id, 'REJECTED')} className="btn btn-danger" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}>Reject</button>
-                      </div>
-                    )}
-                  </td>
+                  <td>{formatDate(loan.createdAt)}</td>
                 </tr>
               ))}
+              {filteredLoans.length === 0 && (
+                <tr>
+                  <td colSpan="7" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
+                    No applications found.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         )}
-      </div>
-
-      <div className="mobile-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        {loans.map(loan => (
-          <div key={loan.id} className="glass-card">
-            <div className="flex justify-between mb-2">
-              <span style={{ fontWeight: 'bold' }}>{loan.user?.name || 'Unknown'} (#{loan.id})</span>
-              <StatusBadge status={loan.status} />
-            </div>
-            <div className="mb-2">
-              Amount: {formatCurrency(loan.amount)} | {loan.tenure} mo
-            </div>
-            {(loan.status === 'PENDING' || loan.status === 'UNDER_REVIEW') && (
-              <div className="flex gap-2 mt-4">
-                <button onClick={() => handleStatusChange(loan.id, 'APPROVED')} className="btn btn-success" style={{ flex: 1 }}>Approve</button>
-                <button onClick={() => handleStatusChange(loan.id, 'REJECTED')} className="btn btn-danger" style={{ flex: 1 }}>Reject</button>
-              </div>
-            )}
-          </div>
-        ))}
       </div>
     </div>
   );
