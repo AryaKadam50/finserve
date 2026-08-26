@@ -2,6 +2,8 @@ package com.finserve.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.finserve.dto.UnderwritingResultDTO;
 import com.finserve.exception.BadRequestException;
 import com.finserve.model.*;
@@ -80,7 +82,9 @@ public class UnderwritingAgentService {
     private final OpenAiEmbeddingClientService embeddingClient;
     private final com.finserve.repository.AuditEventRepository auditEventRepository;
     private final com.finserve.repository.LoanRepository loanRepository;
-    private final ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper = new ObjectMapper()
+            .registerModule(new JavaTimeModule())
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
     @Value("${ai.openai.model:gpt-4o-mini}")
     private String model;

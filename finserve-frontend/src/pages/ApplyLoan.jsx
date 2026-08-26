@@ -58,16 +58,31 @@ const ApplyLoan = () => {
       };
       
       const res = await applyForLoan(payload);
-      const loanId = res.data?.data?.id;
+      // Backend returns loan directly (not wrapped in data.data)
+      const loanId = res.data?.id || res.data?.data?.id;
 
       if (loanId) {
         // Upload documents if selected
+        const uploadErrors = [];
         if (documents.salarySlip) {
-          await uploadDocument(loanId, 'SALARY_SLIP', documents.salarySlip);
+          try {
+            await uploadDocument(loanId, 'SALARY_SLIP', documents.salarySlip);
+          } catch (docErr) {
+            uploadErrors.push('Salary slip upload failed: ' + (docErr.response?.data?.message || docErr.message));
+          }
         }
         if (documents.employmentProof) {
-          await uploadDocument(loanId, 'EMPLOYMENT_PROOF', documents.employmentProof);
+          try {
+            await uploadDocument(loanId, 'EMPLOYMENT_PROOF', documents.employmentProof);
+          } catch (docErr) {
+            uploadErrors.push('Employment proof upload failed: ' + (docErr.response?.data?.message || docErr.message));
+          }
         }
+        if (uploadErrors.length > 0) {
+          console.warn('Document upload warnings:', uploadErrors);
+        }
+      } else {
+        console.error('Could not get loan ID from response:', res.data);
       }
 
       navigate('/my-applications', { state: { message: 'Loan application submitted successfully!' } });
