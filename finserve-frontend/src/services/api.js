@@ -5,7 +5,7 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const user = JSON.parse(localStorage.getItem('user'));
+  const user = JSON.parse(localStorage.getItem('finserve_user'));
   if (user && user.id) {
     if (config.headers && typeof config.headers.set === 'function') {
       config.headers.set('X-User-Id', String(user.id));
