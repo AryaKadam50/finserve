@@ -10,6 +10,7 @@ import ApplyLoan from './pages/ApplyLoan';
 import MyApplications from './pages/MyApplications';
 import AdminDashboard from './pages/AdminDashboard';
 import LoanDetails from './pages/LoanDetails';
+import ApplicationReview from './pages/ApplicationReview';
 
 function App() {
   return (
@@ -49,6 +50,14 @@ function App() {
             element={
               <ProtectedRoute adminOnly={true}>
                 <AdminDashboard />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/loans/:id" 
+            element={
+              <ProtectedRoute adminOnly={true}>
+                <ApplicationReview />
               </ProtectedRoute>
             } 
           />

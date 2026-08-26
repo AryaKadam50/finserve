@@ -3,8 +3,9 @@ package com.finserve.controller;
 import com.finserve.dto.EligibilityRequest;
 import com.finserve.dto.EligibilityResponse;
 import com.finserve.dto.LoanApplicationRequest;
-import com.finserve.dto.LoanStatusUpdateRequest;
+import com.finserve.dto.AdminDecisionRequest;
 import com.finserve.dto.LoanApplicationResponseDTO;
+import com.finserve.model.AuditEvent;
 import com.finserve.service.LoanService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -39,8 +40,31 @@ public class LoanController {
     }
 
     @PutMapping("/{id}/status")
-    public ResponseEntity<LoanApplicationResponseDTO> updateLoanStatus(@PathVariable Long id, @Valid @RequestBody LoanStatusUpdateRequest request) {
-        return ResponseEntity.ok(loanService.updateLoanStatus(id, request));
+    public ResponseEntity<LoanApplicationResponseDTO> updateLoanStatus(
+            @PathVariable Long id, 
+            @Valid @RequestBody AdminDecisionRequest request,
+            @RequestHeader(value = "X-User-Id", required = false) Long userId,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole) {
+        
+        if (!"ADMIN".equals(userRole)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        
+        // Mock admin name for now since we don't fetch full user in controller
+        String adminName = "Admin User (ID: " + userId + ")";
+        return ResponseEntity.ok(loanService.updateLoanStatus(id, request, userId, adminName));
+    }
+
+    @GetMapping("/{id}/audit-events")
+    public ResponseEntity<List<AuditEvent>> getAuditEvents(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole) {
+        
+        if (!"ADMIN".equals(userRole)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        
+        return ResponseEntity.ok(loanService.getAuditEvents(id));
     }
 
     @DeleteMapping("/{id}")

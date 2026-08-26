@@ -10,7 +10,13 @@ import com.finserve.model.LoanStatus;
 import com.finserve.model.User;
 import com.finserve.repository.LoanRepository;
 import com.finserve.repository.UserRepository;
+import com.finserve.dto.AdminDecisionRequest;
+import com.finserve.model.AuditEvent;
+import com.finserve.model.UnderwritingResult;
+import com.finserve.exception.BadRequestException;
+import com.finserve.repository.AuditEventRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.finserve.dto.LoanApplicationResponseDTO;
 import java.math.BigDecimal;
@@ -22,10 +28,16 @@ public class LoanService {
 
     private final LoanRepository loanRepository;
     private final UserRepository userRepository;
+    private final AuditEventRepository auditEventRepository;
+    private final com.finserve.repository.UnderwritingResultRepository underwritingResultRepository;
 
-    public LoanService(LoanRepository loanRepository, UserRepository userRepository) {
+    public LoanService(LoanRepository loanRepository, UserRepository userRepository,
+                       AuditEventRepository auditEventRepository,
+                       com.finserve.repository.UnderwritingResultRepository underwritingResultRepository) {
         this.loanRepository = loanRepository;
         this.userRepository = userRepository;
+        this.auditEventRepository = auditEventRepository;
+        this.underwritingResultRepository = underwritingResultRepository;
     }
 
     /**
@@ -33,6 +45,7 @@ public class LoanService {
      * @param request The loan application details
      * @return LoanApplication entity
      */
+    @Transactional
     public LoanApplicationResponseDTO applyForLoan(LoanApplicationRequest request) {
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", request.getUserId()));
@@ -42,6 +55,14 @@ public class LoanService {
         loan.setAmount(request.getAmount());
         loan.setTenure(request.getTenure());
         loan.setMonthlyIncome(request.getMonthlyIncome());
+        
+        // Map new fields
+        loan.setMonthlyExpenses(request.getMonthlyExpenses());
+        loan.setExistingMonthlyEmi(request.getExistingMonthlyEmi());
+        loan.setExistingLoanCount(request.getExistingLoanCount());
+        loan.setYearsOfEmployment(request.getYearsOfEmployment());
+        loan.setCreditScore(request.getCreditScore());
+        
         loan.setEmploymentType(request.getEmploymentType());
         loan.setPurpose(request.getPurpose());
 
@@ -51,7 +72,17 @@ public class LoanService {
             loan.setStatus(LoanStatus.UNDER_REVIEW);
         }
 
-        return LoanApplicationResponseDTO.fromEntity(loanRepository.save(loan));
+        LoanApplication saved = loanRepository.save(loan);
+        
+        auditEventRepository.save(new AuditEvent(
+                saved.getId(), 
+                "LOAN_SUBMITTED", 
+                "Customer submitted loan application", 
+                user.getId(), 
+                user.getName()
+        ));
+
+        return LoanApplicationResponseDTO.fromEntity(saved);
     }
 
     /**
@@ -98,15 +129,55 @@ public class LoanService {
     }
 
     /**
-     * Updates the status of a loan
+     * Updates the status of a loan via admin decision, enforcing AI override rules.
      * @param id The loan ID
-     * @param request The new status
+     * @param request The AdminDecisionRequest
+     * @param adminId Admin making the decision
+     * @param adminName Admin's name
      * @return Updated LoanApplication entity
      */
-    public LoanApplicationResponseDTO updateLoanStatus(Long id, LoanStatusUpdateRequest request) {
+    @Transactional
+    public LoanApplicationResponseDTO updateLoanStatus(Long id, AdminDecisionRequest request, Long adminId, String adminName) {
         LoanApplication loan = getLoanEntityById(id);
+
+        // Fetch latest AI result to check for overrides
+        List<UnderwritingResult> aiResults = underwritingResultRepository.findByApplicationIdOrderByCreatedAtDesc(id);
+        if (!aiResults.isEmpty()) {
+            UnderwritingResult latestAi = aiResults.get(0);
+            
+            // Check if admin is contradicting AI
+            boolean isOverride = false;
+            if (latestAi.getRecommendation().name().equals("REJECT") && request.getStatus() == LoanStatus.APPROVED) {
+                isOverride = true;
+            } else if (latestAi.getRecommendation().name().equals("APPROVE") && request.getStatus() == LoanStatus.REJECTED) {
+                isOverride = true;
+            } else if (latestAi.getRequiresHumanReview() && request.getStatus() == LoanStatus.APPROVED) {
+                isOverride = true; // Forcing approval on a flagged application is an override
+            }
+
+            if (isOverride && (request.getOverrideReason() == null || request.getOverrideReason().trim().isEmpty())) {
+                throw new BadRequestException("An override reason is required when making a decision contrary to the AI recommendation.");
+            }
+        }
+
         loan.setStatus(request.getStatus());
-        return LoanApplicationResponseDTO.fromEntity(loanRepository.save(loan));
+        LoanApplication savedLoan = loanRepository.save(loan);
+
+        // Record audit event
+        String actionType = "ADMIN_DECISION_" + request.getStatus().name();
+        String desc = "Admin set status to " + request.getStatus().name();
+        if (request.getOverrideReason() != null && !request.getOverrideReason().trim().isEmpty()) {
+            desc += ". Reason: " + request.getOverrideReason();
+            actionType = "ADMIN_OVERRIDE_" + request.getStatus().name();
+        }
+
+        auditEventRepository.save(new AuditEvent(id, actionType, desc, adminId, adminName));
+
+        return LoanApplicationResponseDTO.fromEntity(savedLoan);
+    }
+
+    public List<AuditEvent> getAuditEvents(Long applicationId) {
+        return auditEventRepository.findByApplicationIdOrderByCreatedAtAsc(applicationId);
     }
 
     /**

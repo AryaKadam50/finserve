@@ -12,7 +12,12 @@ public class LoanApplicationResponseDTO {
     private BigDecimal amount;
     private Integer tenure;
     private BigDecimal monthlyIncome;
+    private BigDecimal monthlyExpenses;
+    private BigDecimal existingMonthlyEmi;
+    private Integer existingLoanCount;
     private String employmentType;
+    private Integer yearsOfEmployment;
+    private Integer creditScore;
     private String purpose;
     private LoanStatus status;
     private LocalDateTime createdAt;
@@ -20,12 +25,17 @@ public class LoanApplicationResponseDTO {
 
     public LoanApplicationResponseDTO() {}
 
-    public LoanApplicationResponseDTO(Long id, BigDecimal amount, Integer tenure, BigDecimal monthlyIncome, String employmentType, String purpose, LoanStatus status, LocalDateTime createdAt, UserSummaryDTO user) {
+    public LoanApplicationResponseDTO(Long id, BigDecimal amount, Integer tenure, BigDecimal monthlyIncome, BigDecimal monthlyExpenses, BigDecimal existingMonthlyEmi, Integer existingLoanCount, String employmentType, Integer yearsOfEmployment, Integer creditScore, String purpose, LoanStatus status, LocalDateTime createdAt, UserSummaryDTO user) {
         this.id = id;
         this.amount = amount;
         this.tenure = tenure;
         this.monthlyIncome = monthlyIncome;
+        this.monthlyExpenses = monthlyExpenses;
+        this.existingMonthlyEmi = existingMonthlyEmi;
+        this.existingLoanCount = existingLoanCount;
         this.employmentType = employmentType;
+        this.yearsOfEmployment = yearsOfEmployment;
+        this.creditScore = creditScore;
         this.purpose = purpose;
         this.status = status;
         this.createdAt = createdAt;
@@ -46,7 +56,12 @@ public class LoanApplicationResponseDTO {
                 entity.getAmount(),
                 entity.getTenure(),
                 entity.getMonthlyIncome(),
+                entity.getMonthlyExpenses(),
+                entity.getExistingMonthlyEmi(),
+                entity.getExistingLoanCount(),
                 entity.getEmploymentType(),
+                entity.getYearsOfEmployment(),
+                entity.getCreditScore(),
                 entity.getPurpose(),
                 entity.getStatus(),
                 entity.getCreatedAt(),
@@ -66,8 +81,23 @@ public class LoanApplicationResponseDTO {
     public BigDecimal getMonthlyIncome() { return monthlyIncome; }
     public void setMonthlyIncome(BigDecimal monthlyIncome) { this.monthlyIncome = monthlyIncome; }
 
+    public BigDecimal getMonthlyExpenses() { return monthlyExpenses; }
+    public void setMonthlyExpenses(BigDecimal monthlyExpenses) { this.monthlyExpenses = monthlyExpenses; }
+
+    public BigDecimal getExistingMonthlyEmi() { return existingMonthlyEmi; }
+    public void setExistingMonthlyEmi(BigDecimal existingMonthlyEmi) { this.existingMonthlyEmi = existingMonthlyEmi; }
+
+    public Integer getExistingLoanCount() { return existingLoanCount; }
+    public void setExistingLoanCount(Integer existingLoanCount) { this.existingLoanCount = existingLoanCount; }
+
     public String getEmploymentType() { return employmentType; }
     public void setEmploymentType(String employmentType) { this.employmentType = employmentType; }
+
+    public Integer getYearsOfEmployment() { return yearsOfEmployment; }
+    public void setYearsOfEmployment(Integer yearsOfEmployment) { this.yearsOfEmployment = yearsOfEmployment; }
+
+    public Integer getCreditScore() { return creditScore; }
+    public void setCreditScore(Integer creditScore) { this.creditScore = creditScore; }
 
     public String getPurpose() { return purpose; }
     public void setPurpose(String purpose) { this.purpose = purpose; }
