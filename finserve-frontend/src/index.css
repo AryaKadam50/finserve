@@ -92,21 +92,26 @@ body {
   cursor: pointer;
   transition: all 0.2s ease;
   font-family: inherit;
+  color: var(--text-primary);
+  border: 1px solid var(--border);
 }
 
 .btn-primary {
   background: linear-gradient(135deg, var(--accent) 0%, var(--accent-secondary) 100%);
   color: white;
+  border: none;
 }
 
 .btn-danger {
   background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
   color: white;
+  border: none;
 }
 
 .btn-success {
   background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
   color: white;
+  border: none;
 }
 
 .btn:hover:not(:disabled) {
