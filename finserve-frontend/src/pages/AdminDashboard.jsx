@@ -12,7 +12,8 @@ const AdminDashboard = () => {
   const fetchLoans = async () => {
     try {
       const res = await getAllLoans();
-      setLoans(res.data?.data || []);
+      // Handle both direct array or wrapped ApiResponse
+      setLoans(Array.isArray(res.data) ? res.data : (res.data?.data || []));
     } catch (err) {
       console.error('Failed to fetch loans', err);
     } finally {
