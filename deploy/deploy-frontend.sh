@@ -121,6 +121,12 @@ EOF
         sudo nginx -t
         sudo systemctl restart nginx
 
+        # Re-apply SSL cert so HTTPS is never broken after a deploy
+        if command -v certbot &>/dev/null && [ -d /etc/letsencrypt/live ]; then
+            sudo certbot --nginx -d finservearya.duckdns.org --non-interactive --redirect --keep-until-expiring --quiet 2>/dev/null || true
+            sudo systemctl reload nginx
+        fi
+
         echo "✓ Frontend deployed and Nginx restarted successfully"
 REMOTE
 
