@@ -7,8 +7,13 @@ const api = axios.create({
 api.interceptors.request.use((config) => {
   const user = JSON.parse(localStorage.getItem('user'));
   if (user && user.id) {
-    config.headers['X-User-Id'] = user.id;
-    config.headers['X-User-Role'] = user.role;
+    if (config.headers && typeof config.headers.set === 'function') {
+      config.headers.set('X-User-Id', String(user.id));
+      config.headers.set('X-User-Role', String(user.role));
+    } else {
+      config.headers['X-User-Id'] = String(user.id);
+      config.headers['X-User-Role'] = String(user.role);
+    }
   }
   return config;
 });
