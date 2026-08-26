@@ -25,9 +25,9 @@ const ApplicationReview = () => {
         getDocuments(id),
         getAuditEvents(id)
       ]);
-      setLoan(loanRes.data.data);
+      setLoan(loanRes.data);
       setDocuments(docsRes.data.data);
-      setAuditEvents(auditRes.data.data || []);
+      setAuditEvents(auditRes.data || []);
       
       // Attempt to fetch AI underwriting if it exists, or trigger analysis if needed.
       // Usually it's better to fetch if it exists. Wait, there's `analyzeUnderwriting(loanId)` which generates it or returns existing?
