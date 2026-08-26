@@ -193,7 +193,7 @@ const ApplicationReview = () => {
                 </div>
                 <div style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '8px' }}>
                   <p style={{ margin: '0 0 0.25rem 0', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Confidence Score</p>
-                  <p style={{ margin: 0, fontWeight: 'bold' }}>{(underwritingResult.confidenceScore * 100).toFixed(0)}%</p>
+                  <p style={{ margin: 0, fontWeight: 'bold' }}>{underwritingResult.confidence ? (underwritingResult.confidence * 100).toFixed(0) : 0}%</p>
                 </div>
               </div>
 
@@ -221,7 +221,7 @@ const ApplicationReview = () => {
                   <div className="flex gap-2 flex-wrap">
                     {underwritingResult.policyReferences.map((p, i) => (
                       <span key={i} style={{ background: 'rgba(255,255,255,0.1)', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                        {p}
+                        {typeof p === 'object' ? JSON.stringify(p) : p}
                       </span>
                     ))}
                   </div>
@@ -368,14 +368,14 @@ const ApplicationReview = () => {
                       background: 'var(--primary)',
                       border: '2px solid var(--bg-primary)'
                     }}></div>
-                    <p style={{ margin: '0 0 0.25rem 0', fontWeight: 'bold', fontSize: '0.9rem' }}>{evt.action || evt.eventType}</p>
+                    <p style={{ margin: '0 0 0.25rem 0', fontWeight: 'bold', fontSize: '0.9rem' }}>{evt.actionType}</p>
                     <p style={{ margin: '0 0 0.25rem 0', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
                       {formatDate(evt.createdAt || evt.timestamp)}
                     </p>
-                    {evt.details && <p style={{ margin: 0, fontSize: '0.85rem' }}>{evt.details}</p>}
-                    {evt.actorRole && (
+                    {evt.description && <p style={{ margin: 0, fontSize: '0.85rem' }}>{evt.description}</p>}
+                    {evt.actorName && (
                       <span style={{ fontSize: '0.75rem', color: 'var(--primary)', background: 'rgba(168, 85, 247, 0.1)', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
-                        {evt.actorRole}
+                        {evt.actorName}
                       </span>
                     )}
                   </div>
