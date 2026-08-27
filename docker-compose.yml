@@ -6,7 +6,7 @@ services:
     container_name: finserve-mysql
     environment:
       MYSQL_DATABASE: finserve_db
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-finserve123}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
     ports:
       - "3306:3306"
     volumes:
@@ -27,7 +27,7 @@ services:
       - DB_PORT=3306
       - DB_NAME=finserve_db
       - DB_USERNAME=root
-      - DB_PASSWORD=${DB_PASSWORD:-finserve123}
+      - DB_PASSWORD=${DB_PASSWORD}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - ADMIN_EMAIL=${ADMIN_EMAIL}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
