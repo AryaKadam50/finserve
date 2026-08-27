@@ -29,8 +29,8 @@ services:
       - DB_USERNAME=root
       - DB_PASSWORD=${DB_PASSWORD:-finserve123}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@finserve.com}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
     depends_on:
       db:
         condition: service_healthy
