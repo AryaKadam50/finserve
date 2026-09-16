@@ -69,14 +69,15 @@ const ApplicationReview = () => {
     
     let isOverride = false;
     if (underwritingResult && underwritingResult.recommendation) {
-      if ((decision === 'APPROVED' && underwritingResult.recommendation !== 'APPROVE') ||
-          (decision === 'REJECTED' && underwritingResult.recommendation !== 'REJECT')) {
+      // Only require override reason when directly contradicting a strong AI signal
+      if ((decision === 'APPROVED' && underwritingResult.recommendation === 'REJECT') ||
+          (decision === 'REJECTED' && underwritingResult.recommendation === 'APPROVE')) {
         isOverride = true;
       }
     }
 
     if (isOverride && !overrideReason.trim()) {
-      alert('You are overriding the AI recommendation. Please provide a mandatory override reason.');
+      alert('You are overriding the AI recommendation. Please provide a reason for the override.');
       return;
     }
 
@@ -86,13 +87,14 @@ const ApplicationReview = () => {
         status: decision, 
         overrideReason: overrideReason.trim() || null 
       });
-      alert('Decision recorded successfully!');
-      fetchData(); // Reload
+      alert('✅ Decision recorded successfully!');
+      fetchData();
       setDecision('');
       setOverrideReason('');
     } catch (err) {
       console.error(err);
-      alert('Failed to update decision.');
+      const msg = err?.response?.data?.message || err?.message || 'Unknown error';
+      alert(`Failed to update decision: ${msg}`);
     } finally {
       setSubmitting(false);
     }
@@ -313,17 +315,17 @@ const ApplicationReview = () => {
                 Reject Application
               </button>
               <button 
-                className={`btn ${decision === 'REQUEST_INFO' ? 'btn-primary' : ''}`}
-                style={{ background: decision === 'REQUEST_INFO' ? 'var(--primary)' : 'var(--bg-secondary)' }}
-                onClick={() => setDecision('REQUEST_INFO')}
+                className={`btn ${decision === 'INFO_REQUESTED' ? 'btn-primary' : ''}`}
+                style={{ background: decision === 'INFO_REQUESTED' ? 'var(--accent)' : 'var(--bg-secondary)' }}
+                onClick={() => setDecision('INFO_REQUESTED')}
               >
                 Request Info (Pending Human Review)
               </button>
             </div>
 
             {underwritingResult && underwritingResult.recommendation && decision && (
-              ((decision === 'APPROVED' && underwritingResult.recommendation !== 'APPROVE') ||
-               (decision === 'REJECTED' && underwritingResult.recommendation !== 'REJECT')) && (
+              ((decision === 'APPROVED' && underwritingResult.recommendation === 'REJECT') ||
+               (decision === 'REJECTED' && underwritingResult.recommendation === 'APPROVE')) && (
                  <div className="mb-4">
                    <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--warning)', fontWeight: 'bold' }}>
                      Override Reason (Mandatory)
