@@ -10,9 +10,15 @@ api.interceptors.request.use((config) => {
     if (config.headers && typeof config.headers.set === 'function') {
       config.headers.set('X-User-Id', String(user.id));
       config.headers.set('X-User-Role', String(user.role));
+      if (user.token) {
+        config.headers.set('Authorization', `Bearer ${user.token}`);
+      }
     } else {
       config.headers['X-User-Id'] = String(user.id);
       config.headers['X-User-Role'] = String(user.role);
+      if (user.token) {
+        config.headers['Authorization'] = `Bearer ${user.token}`;
+      }
     }
   }
   return config;

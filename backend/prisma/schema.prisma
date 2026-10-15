@@ -1,0 +1,145 @@
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum LoanStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  UNDER_REVIEW
+  AI_RECOMMENDED
+  PENDING_HUMAN_REVIEW
+  INFO_REQUESTED
+}
+
+enum DocumentType {
+  SALARY_SLIP
+  EMPLOYMENT_PROOF
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  FLAGGED
+  FAILED
+}
+
+enum MatchStatus {
+  MATCH
+  MISMATCH
+  NOT_FOUND
+}
+
+enum UnderwritingRecommendation {
+  APPROVE
+  REJECT
+  REVIEW
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model User {
+  id               String            @id @default(auto()) @map("_id") @db.ObjectId
+  name             String
+  email            String            @unique
+  password         String
+  phone            String?
+  role             UserRole          @default(USER)
+  loanApplications LoanApplication[]
+
+  @@map("users")
+}
+
+model LoanApplication {
+  id                 String       @id @default(auto()) @map("_id") @db.ObjectId
+  userId             String       @db.ObjectId
+  amount             Float
+  tenure             Int
+  monthlyIncome      Float
+  monthlyExpenses    Float?
+  existingMonthlyEmi Float?
+  existingLoanCount  Int?
+  employmentType     String
+  yearsOfEmployment  Int?
+  creditScore        Int?
+  purpose            String?
+  status             LoanStatus   @default(PENDING)
+  createdAt          DateTime     @default(now())
+
+  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documents          Document[]
+
+  @@map("loan_applications")
+}
+
+model Document {
+  id                  String               @id @default(auto()) @map("_id") @db.ObjectId
+  loanApplicationId   String               @db.ObjectId
+  documentType        DocumentType
+  originalFileName    String
+  storagePath         String
+  uploadedAt          DateTime             @default(now())
+  verificationStatus  VerificationStatus   @default(PENDING)
+
+  loanApplication     LoanApplication      @relation(fields: [loanApplicationId], references: [id], onDelete: Cascade)
+  verificationResults VerificationResult[]
+
+  @@map("documents")
+}
+
+model VerificationResult {
+  id             String       @id @default(auto()) @map("_id") @db.ObjectId
+  documentId     String       @db.ObjectId
+  field          String
+  declaredValue  String?
+  extractedValue String?
+  matchStatus    MatchStatus?
+  confidence     Float?
+  createdAt      DateTime     @default(now())
+
+  document       Document     @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@map("verification_results")
+}
+
+model UnderwritingResult {
+  id                  String                      @id @default(auto()) @map("_id") @db.ObjectId
+  applicationId       String
+  recommendation      UnderwritingRecommendation
+  riskLevel           RiskLevel?
+  confidence          Float
+  reasons             String?
+  verificationIssues  String?
+  requiresHumanReview Boolean?
+  policyReferences    String?
+  aiModel             String?
+  createdAt           DateTime                    @default(now())
+
+  @@map("underwriting_results")
+}
+
+model AuditEvent {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  applicationId String
+  actionType    String
+  description   String?
+  actorId       String?
+  actorName     String?
+  createdAt     DateTime  @default(now())
+
+  @@map("audit_events")
+}
